@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏔️ Rockfall Prediction Dashboard</title>
+    
+    <!-- Fonts & Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Chart.js for beautiful graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        /* Header */
+        .header {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .header h1 i {
+            color: #667eea;
+            margin-right: 10px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+        
+        .badge {
+            background: #28a745;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 25px;
+            font-size: 0.9em;
+            display: inline-block;
+            margin-top: 10px;
+        }
+        
+        .badge i {
+            margin-right: 5px;
+        }
+        
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-card i {
+            font-size: 2em;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .stat-card h3 {
+            color: #666;
+            font-size: 1em;
+            margin-bottom: 5px;
+        }
+        
+        .stat-card .value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .stat-card .unit {
+            color: #999;
+            font-size: 0.9em;
+            margin-left: 5px;
+        }
+        
+        /* Chart Section */
+        .chart-container {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .chart-header h2 {
+            color: #333;
+            font-size: 1.5em;
+        }
+        
+        .chart-header h2 i {
+            color: #667eea;
+            margin-right: 10px;
+        }
+        
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background 0.3s;
+        }
+        
+        .refresh-btn:hover {
+            background: #5a67d8;
+        }
+        
+        .refresh-btn i {
+            margin-right: 5px;
+        }
+        
+        canvas {
+            width: 100% !important;
+            height: 400px !important;
+        }
+        
+        /* Alerts Section */
+        .alerts-section {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .alerts-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .alerts-section h2 i {
+            color: #dc3545;
+            margin-right: 10px;
+        }
+        
+        .alerts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+        }
+        
+        .alert-card {
+            background: #fff3f3;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            border-radius: 10px;
+            transition: transform 0.3s;
+        }
+        
+        .alert-card:hover {
+            transform: translateX(5px);
+        }
+        
+        .alert-card.critical {
+            background: #ffebee;
+            border-left-color: #dc3545;
+        }
+        
+        .alert-card.warning {
+            background: #fff3e0;
+            border-left-color: #ff9800;
+        }
+        
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .alert-sensor {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .alert-risk {
+            background: #dc3545;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.9em;
+        }
+        
+        .alert-card.warning .alert-risk {
+            background: #ff9800;
+        }
+        
+        .alert-time {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+        
+        .alert-time i {
+            margin-right: 5px;
+        }
+        
+        /* Sensors Table */
+        .sensors-section {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .sensors-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .sensors-section h2 i {
+            color: #667eea;
+            margin-right: 10px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            background: #f8f9fa;
+            color: #333;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
+            color: #666;
+        }
+        
+        .risk-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .risk-low .risk-indicator { background: #28a745; }
+        .risk-medium .risk-indicator { background: #ff9800; }
+        .risk-high .risk-indicator { background: #dc3545; }
+        
+        .risk-low { color: #28a745; }
+        .risk-medium { color: #ff9800; }
+        .risk-high { color: #dc3545; }
+        
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: white;
+            font-size: 1.2em;
+        }
+        
+        .loading i {
+            margin-right: 10px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            margin-top: 25px;
+            color: rgba(255,255,255,0.8);
+        }
+        
+        .footer a {
+            color: white;
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Auto-refresh indicator */
+        .live-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: #28a745;
+            border-radius: 50%;
+            margin-left: 10px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>
+                <i class="fas fa-mountain"></i> Rockfall Prediction Dashboard
+                <span class="live-indicator" title="Live updates every 10 seconds"></span>
+            </h1>
+            <p>Real-time monitoring and risk assessment for open-pit mines</p>
+            <div class="badge">
+                <i class="fas fa-circle"></i> Live Data (Auto-refresh every 10s)
+            </div>
+        </div>
+        
+        <!-- Stats Cards -->
+        <div class="stats-grid" id="statsContainer">
+            <div class="stat-card">
+                <i class="fas fa-database"></i>
+                <h3>Total Readings</h3>
+                <div class="value" id="totalReadings">-</div>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-chart-line"></i>
+                <h3>Average Risk</h3>
+                <div class="value" id="avgRisk">-</div>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>High Risk Alerts</h3>
+                <div class="value" id="highRisk">-</div>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-microchip"></i>
+                <h3>Active Sensors</h3>
+                <div class="value" id="activeSensors">-</div>
+            </div>
+        </div>
+        
+        <!-- Chart Section -->
+        <div class="chart-container">
+            <div class="chart-header">
+                <h2><i class="fas fa-chart-bar"></i> Risk Trends (Last 24 Hours)</h2>
+                <button class="refresh-btn" onclick="refreshData()">
+                    <i class="fas fa-sync-alt"></i> Refresh Now
+                </button>
+            </div>
+            <canvas id="riskChart"></canvas>
+        </div>
+        
+        <!-- Alerts Section -->
+        <div class="alerts-section">
+            <h2><i class="fas fa-bell"></i> Recent Alerts</h2>
+            <div class="alerts-grid" id="alertsContainer">
+                <div class="loading">
+                    <i class="fas fa-spinner"></i> Loading alerts...
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sensors Table -->
+        <div class="sensors-section">
+            <h2><i class="fas fa-microchip"></i> Latest Sensor Readings</h2>
+            <table id="sensorsTable">
+                <thead>
+                    <tr>
+                        <th>Sensor ID</th>
+                        <th>Timestamp</th>
+                        <th>Vibration (g)</th>
+                        <th>Displacement (mm)</th>
+                        <th>Risk Score</th>
+                    </tr>
+                </thead>
+                <tbody id="sensorsBody">
+                    <tr>
+                        <td colspan="5" style="text-align: center;">
+                            <i class="fas fa-spinner fa-spin"></i> Loading...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <p>Made with <i class="fas fa-heart" style="color: #ff6b6b;"></i> by Rashmipriya | 
+            <a href="https://github.com/Rashmipriya24/smart-mine-monitoring" target="_blank">
+                <i class="fab fa-github"></i> GitHub
+            </a> | 
+            <span id="lastUpdate">Last update: just now</span>
+            </p>
+        </div>
+    </div>
+    
+    <script>
+        // API URL (change if needed)
+        const API_URL = 'http://localhost:8000';
+        
+        // Chart instance
+        let riskChart = null;
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("🚀 Dashboard initializing...");
+            refreshData();
+            // Auto refresh every 10 seconds
+            setInterval(refreshData, 10000);
+            console.log("🔄 Auto-refresh enabled - every 10 seconds");
+        });
+        
+        // Main refresh function
+        async function refreshData() {
+            console.log("🔄 Refreshing data at", new Date().toLocaleTimeString());
+            document.getElementById('lastUpdate').innerHTML = 'Last update: ' + new Date().toLocaleTimeString();
+            
+            try {
+                await Promise.all([
+                    fetchStats(),
+                    fetchReadings(),
+                    fetchAlerts(),
+                    fetchSensors()
+                ]);
+            } catch (error) {
+                console.error('Error refreshing data:', error);
+            }
+        }
+        
+        // Fetch statistics
+        async function fetchStats() {
+            try {
+                const response = await fetch(`${API_URL}/stats`);
+                if (!response.ok) throw new Error('Failed to fetch stats');
+                const data = await response.json();
+                
+                document.getElementById('totalReadings').textContent = data.total_readings || 0;
+                document.getElementById('avgRisk').textContent = (data.average_risk || 0).toFixed(3);
+                document.getElementById('highRisk').textContent = data.high_risk_alerts || 0;
+            } catch (error) {
+                console.error('Stats error:', error);
+            }
+        }
+        
+        // Fetch sensors list
+        async function fetchSensors() {
+            try {
+                const response = await fetch(`${API_URL}/sensors`);
+                if (!response.ok) throw new Error('Failed to fetch sensors');
+                const data = await response.json();
+                
+                document.getElementById('activeSensors').textContent = data.sensors?.length || 0;
+            } catch (error) {
+                console.error('Sensors error:', error);
+            }
+        }
+        
+        // Fetch readings for chart
+        async function fetchReadings() {
+            try {
+                const response = await fetch(`${API_URL}/readings?limit=20`);
+                if (!response.ok) throw new Error('Failed to fetch readings');
+                const data = await response.json();
+                
+                updateChart(data.readings);
+                updateSensorsTable(data.readings);
+            } catch (error) {
+                console.error('Readings error:', error);
+            }
+        }
+        
+        // Fetch alerts
+        async function fetchAlerts() {
+            try {
+                const response = await fetch(`${API_URL}/alerts?threshold=0.5`);
+                if (!response.ok) throw new Error('Failed to fetch alerts');
+                const data = await response.json();
+                
+                updateAlerts(data.alerts);
+            } catch (error) {
+                console.error('Alerts error:', error);
+            }
+        }
+        
+        // Update chart
+        function updateChart(readings) {
+            if (!readings || readings.length === 0) return;
+            
+            const ctx = document.getElementById('riskChart').getContext('2d');
+            
+            // Prepare data
+            const labels = readings.map(r => {
+                const date = new Date(r.timestamp);
+                return date.toLocaleTimeString();
+            }).reverse();
+            
+            const riskData = readings.map(r => r.risk_score).reverse();
+            
+            // Destroy old chart if exists
+            if (riskChart) {
+                riskChart.destroy();
+            }
+            
+            // Create new chart
+            riskChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Risk Score',
+                        data: riskData,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: (context) => {
+                            const value = context.raw;
+                            if (value > 0.7) return '#dc3545';
+                            if (value > 0.4) return '#ff9800';
+                            return '#28a745';
+                        }
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 1,
+                            grid: {
+                                color: 'rgba(0,0,0,0.05)'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            console.log("📊 Chart updated");
+        }
+        
+        // Update sensors table
+        function updateSensorsTable(readings) {
+            const tbody = document.getElementById('sensorsBody');
+            
+            if (!readings || readings.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No data available</td></tr>';
+                return;
+            }
+            
+            let html = '';
+            readings.forEach(r => {
+                const riskClass = r.risk_score > 0.7 ? 'risk-high' : 
+                                 r.risk_score > 0.4 ? 'risk-medium' : 'risk-low';
+                
+                html += `
+                    <tr>
+                        <td>${r.sensor_id || 'Unknown'}</td>
+                        <td>${new Date(r.timestamp).toLocaleString()}</td>
+                        <td>${(r.vibration || 0).toFixed(3)} g</td>
+                        <td>${(r.displacement || 0).toFixed(2)} mm</td>
+                        <td class="${riskClass}">
+                            <span class="risk-indicator"></span>
+                            ${(r.risk_score || 0).toFixed(3)}
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tbody.innerHTML = html;
+        }
+        
+        // Update alerts
+        function updateAlerts(alerts) {
+            const container = document.getElementById('alertsContainer');
+            
+            if (!alerts || alerts.length === 0) {
+                container.innerHTML = '<div class="alert-card" style="grid-column: 1/-1; text-align: center;">No active alerts</div>';
+                return;
+            }
+            
+            let html = '';
+            alerts.slice(0, 6).forEach(alert => {
+                const alertClass = alert.risk_score > 0.7 ? 'critical' : 'warning';
+                const timeAgo = getTimeAgo(new Date(alert.timestamp));
+                
+                html += `
+                    <div class="alert-card ${alertClass}">
+                        <div class="alert-header">
+                            <span class="alert-sensor"><i class="fas fa-microchip"></i> ${alert.sensor_id}</span>
+                            <span class="alert-risk">${(alert.risk_score * 100).toFixed(0)}% Risk</span>
+                        </div>
+                        <div class="alert-time">
+                            <i class="far fa-clock"></i> ${timeAgo}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        // Helper: Get time ago string
+        function getTimeAgo(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+            
+            let interval = seconds / 31536000;
+            if (interval > 1) return Math.floor(interval) + ' years ago';
+            
+            interval = seconds / 2592000;
+            if (interval > 1) return Math.floor(interval) + ' months ago';
+            
+            interval = seconds / 86400;
+            if (interval > 1) return Math.floor(interval) + ' days ago';
+            
+            interval = seconds / 3600;
+            if (interval > 1) return Math.floor(interval) + ' hours ago';
+            
+            interval = seconds / 60;
+            if (interval > 1) return Math.floor(interval) + ' minutes ago';
+            
+            return Math.floor(seconds) + ' seconds ago';
+        }
+        
+        // Show error message
+        function showError(message) {
+            console.error(message);
+            // You can add a toast notification here
+        }
+    </script>
+</body>
+</html>
